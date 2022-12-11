@@ -1,13 +1,18 @@
-const app = require("express")();
-const server = require("http").createServer(app);
+const http = require('http');
+const path = require('path');
+const express = require('express');
+const socket = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
 const options = {
   cors: {
     origins: "*",
   },
 };
+const io = socket(server, options);
 
-const io = require("socket.io")(server, options);
-
+// Socket
 let state = {
   files: [
     {
@@ -20,8 +25,6 @@ let state = {
   mode: "text/x-c++src",
 };
 
-console.log(state.files[0].content);
-
 io.on("connection", (socket) => {
   console.log(socket.id);
   io.emit("broadcast", state);
@@ -30,6 +33,13 @@ io.on("connection", (socket) => {
     state = arg;
     socket.broadcast.emit("broadcast", state);
   });
+});
+
+// SPA
+app.use("/public", express.static(path.join(__dirname, "collaborative-code-editor-client", "public")));
+
+app.get("*", (_req, res) => {
+  res.sendFile(path.resolve(__dirname, "collaborative-code-editor-client", "index.html"));
 });
 
 server.listen(process.env.PORT || 3000);
