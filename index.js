@@ -1,3 +1,4 @@
+const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const express = require('express');
@@ -12,8 +13,10 @@ const options = {
 };
 const io = socket(server, options);
 
-// Socket
-let state = {
+const FILE = 'collaborative-code-editor-server.state'
+const prevState = fs.existsSync(FILE) && JSON.parse(fs.readFileSync(FILE))
+
+let state = prevState || {
   files: [
     {
       name: "01 Doubly Linked List.cpp",
@@ -25,13 +28,14 @@ let state = {
   mode: "text/x-c++src",
 };
 
+
 io.on("connection", (socket) => {
-  console.log(socket.id);
   io.emit("broadcast", state);
 
   socket.on("emit", (arg) => {
     state = arg;
     socket.broadcast.emit("broadcast", state);
+    fs.writeFileSync(FILE, JSON.stringify(state))
   });
 });
 
